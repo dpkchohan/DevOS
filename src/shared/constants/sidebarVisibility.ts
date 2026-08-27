@@ -57,6 +57,8 @@ export const SIDEBAR_ICON_ACCENTS: Partial<Record<SidebarItemId, string>> = {
   translator: "#3B82F6",
   playground: "#EAB308",
   "search-tools": "#0891B2",
+  orchestration: "#8B5CF6",
+
   memory: "#10B981",
   skills: "#F43F5E",
   "agent-skills": "#D946EF",

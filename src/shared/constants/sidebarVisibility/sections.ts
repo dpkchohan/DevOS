@@ -548,6 +548,15 @@ const DEVTOOLS_ITEMS: readonly SidebarItemDefinition[] = [
     subtitleKey: "searchToolsSubtitle",
     icon: "manage_search",
   },
+  {
+    id: "orchestration",
+    href: "/dashboard/orchestration",
+    i18nKey: "orchestration",
+    labelFallback: "Orchestration",
+    subtitleKey: "orchestrationSubtitle",
+    subtitleFallback: "Hierarchical planner + model router",
+    icon: "hub",
+  },
 ];
 
 const MCP_ITEM: SidebarItemDefinition = {
