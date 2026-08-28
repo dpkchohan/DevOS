@@ -15,7 +15,7 @@ function makeSubtask(overrides: Partial<SubtaskSpec> = {}): SubtaskSpec {
     dependencies: [],
     complexity: "moderate",
     risk: 0.3,
-    recommendedModel: "minimax-m2.5",
+    recommendedModel: "auto/minimax",
     files: [],
     acceptanceCriteria: ["works"],
     tests: [],

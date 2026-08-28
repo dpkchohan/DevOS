@@ -23,6 +23,8 @@ export const CHANGE_SET_PROTOCOL_PROMPT = [
   "- Use action 'create' only for files that do not exist yet, 'modify' for existing files.",
   "- Do not touch .git, node_modules, .env, or any credential/secret file.",
   '- If you cannot complete the subtask, return {"error":"<reason>"} instead of guessing.',
+  "- If this subtask requires a test file, name it with a `.test.ts`/`.spec.ts` (or .tsx/.js/.jsx) " +
+    "suffix so the verification step can identify and run exactly that file.",
 ].join("\n");
 
 export class ChangeSetParseError extends Error {

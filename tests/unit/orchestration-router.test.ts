@@ -20,7 +20,8 @@ function makeSubtask(overrides: Partial<SubtaskSpec> = {}): SubtaskSpec {
     dependencies: [],
     complexity: "moderate",
     risk: 0.3,
-    recommendedModel: "minimax-m2.5",
+    recommendedModel: "auto/minimax",
+
     files: [],
     acceptanceCriteria: [],
     tests: [],
@@ -30,8 +31,8 @@ function makeSubtask(overrides: Partial<SubtaskSpec> = {}): SubtaskSpec {
 
 describe("selectInitialModel", () => {
   it("uses the fast worker for trivial/simple", () => {
-    assert.equal(selectInitialModel("trivial", DEFAULT_ROUTING_POLICY), "minimax-m2.5");
-    assert.equal(selectInitialModel("simple", DEFAULT_ROUTING_POLICY), "minimax-m2.5");
+    assert.equal(selectInitialModel("trivial", DEFAULT_ROUTING_POLICY), "auto/minimax");
+    assert.equal(selectInitialModel("simple", DEFAULT_ROUTING_POLICY), "auto/minimax");
   });
 
   it("uses the strong worker for complex/critical, never the lead model directly", () => {
@@ -46,19 +47,19 @@ describe("selectEscalatedModel", () => {
   it("retries the same model on attempt 2 per the default ladder", () => {
     const subtask = makeSubtask();
     const attempts: SubtaskAttempt[] = [
-      { attempt: 1, model: "minimax-m2.5", startedAt: "t", outcome: "fail" },
+      { attempt: 1, model: "auto/minimax", startedAt: "t", outcome: "fail" },
     ];
     const result = selectEscalatedModel(subtask, attempts, DEFAULT_ROUTING_POLICY);
     assert.ok(result);
-    assert.equal(result?.model, "minimax-m2.5");
+    assert.equal(result?.model, "auto/minimax");
     assert.equal(result?.escalateToLead, false);
   });
 
   it("escalates to a strong worker on attempt 3", () => {
     const subtask = makeSubtask();
     const attempts: SubtaskAttempt[] = [
-      { attempt: 1, model: "minimax-m2.5", startedAt: "t", outcome: "fail" },
-      { attempt: 2, model: "minimax-m2.5", startedAt: "t", outcome: "fail" },
+      { attempt: 1, model: "auto/minimax", startedAt: "t", outcome: "fail" },
+      { attempt: 2, model: "auto/minimax", startedAt: "t", outcome: "fail" },
     ];
     const result = selectEscalatedModel(subtask, attempts, DEFAULT_ROUTING_POLICY);
     assert.ok(result);
@@ -68,10 +69,16 @@ describe("selectEscalatedModel", () => {
   it("returns null once maxAttemptsPerSubtask is exhausted", () => {
     const subtask = makeSubtask();
     const attempts: SubtaskAttempt[] = [
-      { attempt: 1, model: "minimax-m2.5", startedAt: "t", outcome: "fail" },
-      { attempt: 2, model: "minimax-m2.5", startedAt: "t", outcome: "fail" },
-      { attempt: 3, model: "claude-sonnet-5", startedAt: "t", outcome: "fail" },
+      { attempt: 1, model: "auto/minimax", startedAt: "t", outcome: "fail" },
+      { attempt: 2, model: "auto/minimax", startedAt: "t", outcome: "fail" },
+      {
+        attempt: 3,
+        model: "bedrock/us.anthropic.claude-sonnet-4-6",
+        startedAt: "t",
+        outcome: "fail",
+      },
     ];
+
     const result = selectEscalatedModel(subtask, attempts, DEFAULT_ROUTING_POLICY);
     assert.equal(result, null);
   });

@@ -42,6 +42,15 @@ export interface CodingModelCallerOptions {
 export function createCodingModelCaller(options: CodingModelCallerOptions): ModelCaller {
   const { workspace, callModel, onApplied } = options;
 
+  // Tracks paths this caller has already written within the current run, so
+  // a RETRY of the same subtask (which re-invokes the worker with no memory
+  // of the prior attempt's successful write) does not get rejected for
+  // requesting "create" on a path that attempt already created. This is a
+  // bookkeeping normalization only — every Workspace security check (path
+  // traversal, extension allowlist, size limits, protected paths) still
+  // runs unchanged for every file in every attempt.
+  const pathsCreatedThisRun = new Set<string>();
+
   return async ({ model, systemPrompt, userPrompt, signal }) => {
     const result = await callModel({
       model,
@@ -53,9 +62,16 @@ export function createCodingModelCaller(options: CodingModelCallerOptions): Mode
     // Throws ChangeSetParseError on malformed output — becomes failure context.
     const changeSet = parseChangeSet(result.text);
 
+    const normalizedFiles = changeSet.files.map((file) =>
+      file.action === "create" && pathsCreatedThisRun.has(file.path)
+        ? { ...file, action: "modify" as const }
+        : file
+    );
+
     // Throws WorkspaceViolationError on unsafe paths / policy breaches, and
     // rolls back internally if a write fails midway.
-    const applied = workspace.applyChangeSet(changeSet.files);
+    const applied = workspace.applyChangeSet(normalizedFiles);
+    for (const change of applied) pathsCreatedThisRun.add(change.path);
     onApplied?.(applied, changeSet.summary);
 
     const manifest = applied

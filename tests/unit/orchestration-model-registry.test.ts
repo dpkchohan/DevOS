@@ -15,18 +15,18 @@ import {
 describe("model capability registry", () => {
   it("has default entries for the five orchestration-brief models", () => {
     for (const id of [
-      "claude-opus-5",
-      "claude-sonnet-5",
-      "claude-haiku-4-5",
+      "bedrock/us.anthropic.claude-opus-4-7",
+      "bedrock/us.anthropic.claude-sonnet-4-6",
+      "bedrock/us.anthropic.claude-haiku-4-5-20251001-v1:0",
       "gpt-5.6-luna",
-      "minimax-m2.5",
+      "auto/minimax",
     ]) {
       assert.ok(getModelCapability(id), `expected a registry entry for ${id}`);
     }
   });
 
   it("lists Opus 5 under lead/planner/reviewer roles", () => {
-    const opus = getModelCapability("claude-opus-5");
+    const opus = getModelCapability("bedrock/us.anthropic.claude-opus-4-7");
     assert.ok(opus);
     assert.ok(opus?.roles.includes("lead"));
     assert.ok(opus?.roles.includes("planner"));
@@ -35,9 +35,9 @@ describe("model capability registry", () => {
 
   it("lists models by role", () => {
     const leads = listModelsForRole("lead");
-    assert.ok(leads.some((m) => m.id === "claude-opus-5"));
+    assert.ok(leads.some((m) => m.id === "bedrock/us.anthropic.claude-opus-4-7"));
     const workers = listModelsForRole("worker");
-    assert.ok(workers.some((m) => m.id === "minimax-m2.5"));
+    assert.ok(workers.some((m) => m.id === "auto/minimax"));
   });
 
   it("ratingScore maps levels to a 0..1 numeric scale monotonically", () => {
@@ -64,6 +64,6 @@ describe("model capability registry", () => {
     });
     assert.ok(getModelCapability("test-custom-model"));
     assert.ok(listModelCapabilities().some((m) => m.id === "test-custom-model"));
-    assert.ok(getModelCapability("claude-opus-5"));
+    assert.ok(getModelCapability("bedrock/us.anthropic.claude-opus-4-7"));
   });
 });

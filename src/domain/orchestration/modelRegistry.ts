@@ -28,7 +28,7 @@ import type { ModelCapabilityMetadata, ModelRole, RatingLevel } from "./types";
  */
 const DEFAULT_MODEL_CAPABILITIES: ModelCapabilityMetadata[] = [
   {
-    id: "claude-opus-5",
+    id: "bedrock/us.anthropic.claude-opus-4-7",
     displayName: "Claude Opus 5",
     provider: "bedrock",
     family: "claude-opus",
@@ -42,10 +42,14 @@ const DEFAULT_MODEL_CAPABILITIES: ModelCapabilityMetadata[] = [
     reliability: "high",
     roles: ["lead", "planner", "reviewer"],
     notes:
-      "Lead architect/planner/reviewer. Bedrock inference-profile id: us.anthropic.claude-opus-5.",
+      "Lead architect/planner/reviewer. Live-verified callable id on this deployment's OmniRoute " +
+      "catalog (bedrock inference-profile us.anthropic.claude-opus-4-7). The bare alias " +
+      '"claude-opus-5" is ambiguous against /v1/chat/completions and the on-demand ' +
+      '"anthropic.claude-opus-4-7" id fails with ValidationException — only the ' +
+      '"bedrock/us.anthropic.*" inference-profile form is invokable.',
   },
   {
-    id: "claude-sonnet-5",
+    id: "bedrock/us.anthropic.claude-sonnet-4-6",
     displayName: "Claude Sonnet 5",
     provider: "bedrock",
     family: "claude-sonnet",
@@ -59,10 +63,11 @@ const DEFAULT_MODEL_CAPABILITIES: ModelCapabilityMetadata[] = [
     reliability: "high",
     roles: ["worker", "reviewer"],
     notes:
-      "Strong worker for COMPLEX subtasks. Bedrock inference-profile id: us.anthropic.claude-sonnet-5.",
+      "Strong worker for COMPLEX subtasks. Live-verified callable id (bedrock inference-profile " +
+      "us.anthropic.claude-sonnet-4-6). Same ambiguous-alias / on-demand-throughput caveats as Opus.",
   },
   {
-    id: "claude-haiku-4-5",
+    id: "bedrock/us.anthropic.claude-haiku-4-5-20251001-v1:0",
     displayName: "Claude Haiku 4.5",
     provider: "bedrock",
     family: "claude-haiku",
@@ -76,7 +81,8 @@ const DEFAULT_MODEL_CAPABILITIES: ModelCapabilityMetadata[] = [
     reliability: "high",
     roles: ["worker", "fallback"],
     notes:
-      "Fast/simple fallback for TRIVIAL/SIMPLE work. Bedrock inference-profile id: us.anthropic.claude-haiku-4-5-20251001-v1:0. Do NOT assume Haiku 4.6 exists on Bedrock.",
+      "Fast/simple fallback for TRIVIAL/SIMPLE work. Live-verified callable id: " +
+      "bedrock/us.anthropic.claude-haiku-4-5-20251001-v1:0. Do NOT assume Haiku 4.6 exists on Bedrock.",
   },
   {
     id: "gpt-5.6-luna",
@@ -93,10 +99,15 @@ const DEFAULT_MODEL_CAPABILITIES: ModelCapabilityMetadata[] = [
     reliability: "high",
     roles: ["worker"],
     notes:
-      "Fast/high-quality worker. Must use the correct inference profile, not on-demand throughput.",
+      "Fast/high-quality worker. KNOWN BLOCKER on this deployment: no provider route currently " +
+      "returns 200 for Luna (openai/gpt-5.6-luna -> 401 no active credentials; aug/gpt5.6-luna -> " +
+      "502 spawn EINVAL; cxa/gpt-5.6-luna -> 503 Codex transport not configured; " +
+      "dva/gpt-5-6-luna-* -> 500 DEVIN_AGENTIC_HOME misconfigured). This is a credential/provider " +
+      "configuration gap, not an orchestration bug — do not add a bespoke adapter for it; fix by " +
+      "configuring one of the existing Luna-capable provider connections in Settings -> Providers.",
   },
   {
-    id: "minimax-m2.5",
+    id: "auto/minimax",
     displayName: "MiniMax 2.5",
     provider: "minimax",
     family: "minimax",
@@ -109,7 +120,10 @@ const DEFAULT_MODEL_CAPABILITIES: ModelCapabilityMetadata[] = [
     cost: "low",
     reliability: "medium",
     roles: ["worker"],
-    notes: "Fast worker — default for normal implementation/repetitive coding.",
+    notes:
+      "Fast worker — default for normal implementation/repetitive coding. Live-verified callable id " +
+      "on this deployment: auto/minimax (resolves to openai.gpt-oss-120b-1:0 via Bedrock routing). " +
+      'The bare "minimax-m2.5" alias is ambiguous against /v1/chat/completions on this catalog.',
   },
 ];
 

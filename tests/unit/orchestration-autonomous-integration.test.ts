@@ -49,6 +49,31 @@ function changeSet(contents: string, action: "create" | "modify" = "create") {
   });
 }
 
+/** A change set that also creates a real, passing test file for "clamp.ts",
+ * so `verifyCommands: ["test:file"]` has an explicit target to run instead
+ * of falling back to an unscoped, repository-wide `node --test`. */
+function changeSetWithTest(contents: string, action: "create" | "modify" = "create") {
+  return JSON.stringify({
+    summary: "clamp helper with test",
+    files: [
+      { path: "clamp.ts", action, contents },
+      {
+        path: "clamp.test.ts",
+        action: "create",
+        contents:
+          'import { test } from "node:test";\n' +
+          'import assert from "node:assert/strict";\n' +
+          'import { clamp } from "./clamp.ts";\n\n' +
+          'test("clamp bounds a value between 0 and 1", () => {\n' +
+          "  assert.equal(clamp(0.5), 0.5);\n" +
+          "  assert.equal(clamp(-1), 0);\n" +
+          "  assert.equal(clamp(2), 1);\n" +
+          "});\n",
+      },
+    ],
+  });
+}
+
 const GOOD = "export const clamp = (n: number) => Math.max(0, Math.min(1, n));\n";
 
 test("autonomous run: worker writes a real file, verification passes, run persists", async () => {
@@ -95,11 +120,12 @@ test("autonomous run: real command verification passes and completes the run", a
   const callModel = async ({ systemPrompt }: { systemPrompt: string }) => {
     if (systemPrompt.includes("lead software architect")) return { text: PLAN };
     if (systemPrompt.includes("lead reviewer")) return { text: '{"approved":true,"defects":[]}' };
-    return { text: changeSet(GOOD) };
+    return { text: changeSetWithTest(GOOD) };
   };
 
-  // `test:file` runs `node --import tsx/esm --test` with no target, which exits
-  // 0 on an empty selection — a genuine allowlisted command that succeeds.
+  // `test:file` now requires an explicit test file among this attempt's
+  // changes (here, "clamp.test.ts") and runs ONLY that file — never an
+  // unscoped, repository-wide `node --test`.
   const result = await runAutonomousOrchestration({
     task: "Add a clamp helper.",
     callModel,
@@ -171,7 +197,7 @@ test("autonomous run: a rejecting final review flips a completed run to failed",
       }
       return { text: '{"approved":true,"defects":[]}' };
     }
-    return { text: changeSet(GOOD) };
+    return { text: changeSetWithTest(GOOD) };
   };
 
   const result = await runAutonomousOrchestration({
@@ -189,6 +215,80 @@ test("autonomous run: a rejecting final review flips a completed run to failed",
   assert.match(result.run.error ?? "", /final review rejected/);
   assert.ok((result.run.reviewNotes ?? []).some((n) => /NaN/.test(n)));
   assert.equal(getOrchestrationRun(result.run.id)?.status, "failed");
+
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// Regression test for the live production bug reported against the real API:
+//   POST /api/v1/management/orchestration with task "Create a file called
+//   devos-test.txt containing exactly: DEvOS WORKS" returned
+//   status: "failed", error: "subtask-1 failed after escalation",
+//   appliedChanges: {}, commandResults: {}, rolledBack: false.
+//
+// Root cause: the DEFAULT_ROUTING_POLICY / model registry shipped bare model
+// ids ("claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5", "minimax-m2.5")
+// that are AMBIGUOUS or UNROUTABLE against this deployment's live
+// /v1/chat/completions catalog (verified live: "minimax-m2.5" => 400
+// "Ambiguous model ... Use provider/model prefix"). Every worker/lead call
+// failed at the HTTP layer before ever producing a change set, so
+// codingWorker/changeSet/workspace/testRunner were never reached — the
+// escalation ladder exhausted purely on transport-level 400s.
+//
+// This test reproduces that exact class of failure with a fake `callModel`
+// that mimics the live gateway's ambiguous-model rejection for any bare
+// (unprefixed) model id, and asserts that with the corrected
+// DEFAULT_ROUTING_POLICY every model id the engine actually calls is
+// provider-prefixed (never ambiguous), so the run completes instead of
+// failing after escalation — without weakening the existing escalation/
+// fail-closed tests above.
+test("autonomous run: regression — routing policy models must never be bare/ambiguous ids", async () => {
+  resetRoutingPolicy();
+  const root = tempRoot();
+  const modelsCalled: string[] = [];
+
+  // Mirrors the live gateway's real rejection behaviour for a bare,
+  // unprefixed model id (e.g. "minimax-m2.5" -> 400 "Ambiguous model").
+  const isAmbiguousBareId = (model: string) => !model.includes("/");
+
+  const callModel = async ({ model, systemPrompt }: { model: string; systemPrompt: string }) => {
+    modelsCalled.push(model);
+    if (isAmbiguousBareId(model)) {
+      throw new Error(
+        `Model call failed (400) for ${model}: Ambiguous model '${model}'. ` +
+          "Use provider/model prefix."
+      );
+    }
+    if (systemPrompt.includes("lead software architect")) return { text: PLAN };
+    if (systemPrompt.includes("lead reviewer")) return { text: '{"approved":true,"defects":[]}' };
+    return { text: changeSetWithTest(GOOD) };
+  };
+
+  const result = await runAutonomousOrchestration({
+    task: "Create a file called devos-test.txt containing exactly: DEvOS WORKS",
+
+    callModel,
+    workspaceRoot: root,
+    verifyCommands: ["test:file"],
+    rollbackOnFailure: true,
+  });
+
+  // The fix: none of the models the engine actually dispatched are bare/
+  // ambiguous ids, so none of them hit the simulated 400 path above.
+  assert.ok(modelsCalled.length > 0, "the engine must have attempted at least one model call");
+  for (const model of modelsCalled) {
+    assert.ok(
+      model.includes("/"),
+      `model id "${model}" is a bare/unprefixed id and would be rejected as ambiguous by the live gateway`
+    );
+  }
+
+  // With no transport-level rejections, the subtask can actually reach the
+  // coding worker / workspace / test runner and complete for real.
+  assert.equal(result.run.status, "completed");
+  assert.equal(result.run.error, undefined);
+  assert.equal(result.rolledBack, false);
+  assert.ok(result.appliedChanges.length > 0, "a real file must have been applied");
+  assert.equal(fs.existsSync(path.join(root, "clamp.ts")), true);
 
   fs.rmSync(root, { recursive: true, force: true });
 });

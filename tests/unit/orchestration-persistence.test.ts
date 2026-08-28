@@ -40,7 +40,7 @@ function makeRun(id: string) {
     subtasks: [] as never[],
     createdAt: now,
     updatedAt: now,
-    leadModel: "claude-opus-5",
+    leadModel: "bedrock/us.anthropic.claude-opus-4-7",
   };
 }
 

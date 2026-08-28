@@ -16,10 +16,10 @@
 import type { RoutingPolicy, SubtaskAttempt, SubtaskSpec, TaskComplexity } from "./types";
 
 export const DEFAULT_ROUTING_POLICY: RoutingPolicy = {
-  fastWorkers: ["minimax-m2.5", "gpt-5.6-luna"],
-  strongWorkers: ["claude-sonnet-5", "gpt-5.6-luna"],
-  leadModel: "claude-opus-5",
-  fallbackModel: "claude-haiku-4-5",
+  fastWorkers: ["auto/minimax", "gpt-5.6-luna"],
+  strongWorkers: ["bedrock/us.anthropic.claude-sonnet-4-6", "gpt-5.6-luna"],
+  leadModel: "bedrock/us.anthropic.claude-opus-4-7",
+  fallbackModel: "bedrock/us.anthropic.claude-haiku-4-5-20251001-v1:0",
   maxAttemptsPerSubtask: 3,
   escalationLadder: [
     { attempt: 1, action: "same" },

@@ -110,6 +110,7 @@ export async function runAutonomousOrchestration(
     commands: verifyCommands,
     signal,
     onCommand: (result) => commandResults.push(result),
+    workspace,
   });
 
   const run = await runOrchestration({
