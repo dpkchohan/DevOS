@@ -1,8 +1,60 @@
 # Orchestration — Hierarchical Planner / Model Router
 
+> **DEvOS.** This orchestration layer is the core of DEvOS, the autonomous
+> developer-agent product built on OmniRoute. See [`DEVOS.md`](../../DEVOS.md)
+> for the product-level overview, security model, and API reference.
+
 Turns a single coding task into: **lead-model plan → complexity-routed
 subtask execution → retry/escalation → periodic lead review → result**.
 Built on top of OmniRoute's existing routing stack, not a replacement for it.
+
+## 0. Autonomous execution (the real loop)
+
+`POST /api/v1/management/orchestration` runs the **autonomous** path by default
+(`dryRun: true` opts back into plan-only). Entry point:
+`runAutonomousOrchestration()` in `src/lib/orchestration/autonomousRun.ts`.
+
+```mermaid
+flowchart TD
+  A[POST /api/v1/management/orchestration] --> B[classifyTask]
+  B --> C[planTask — Opus 5 lead]
+  C --> D[orderByDependencies]
+  D --> E[selectInitialModel]
+  E --> F[worker returns change set]
+  F --> G{valid change set?}
+  G -- no --> R[record failure + context]
+  G -- yes --> H[Workspace.applyChangeSet → REAL FILES]
+  H --> I[TestRunner: allowlisted commands]
+  I --> J{verification passed?}
+  J -- no --> R
+  R --> K{attempts < max?}
+  K -- yes --> E
+  K -- no --> L[status: failed / escalated]
+  J -- yes --> M[periodic lead review]
+  M --> N[final Opus review over git diff]
+  N --> O{approved?}
+  O -- no --> L
+  O -- yes --> P[status: completed]
+  L --> Q[rollback applied changes]
+  P --> S[persist run]
+  Q --> S
+```
+
+Supporting modules (all under `src/lib/orchestration/`):
+
+| Module             | Responsibility                                                    |
+| ------------------ | ----------------------------------------------------------------- |
+| `workspace.ts`     | Only filesystem writer. Path/extension/size validation, rollback. |
+| `changeSet.ts`     | Parses + validates the worker's structured JSON output.           |
+| `codingWorker.ts`  | Wraps a `ModelCaller` so output is applied, not just returned.    |
+| `testRunner.ts`    | Allowlisted commands, fixed argv, `shell: false`, timeouts.       |
+| `gitInspect.ts`    | Read-only `status` / `diff` / `diff --stat`.                      |
+| `autonomousRun.ts` | Assembles the above and runs the final diff-based review.         |
+
+**Fail-closed invariant:** if no `TestRunner` is supplied (or
+`verifyCommands` is empty), the subtask is recorded as **failed** with
+"could not be verified". Unverified work is never reported as success. This is
+locked by a regression test in `tests/unit/orchestration-executor.test.ts`.
 
 ## 1. Architecture
 
