@@ -15,11 +15,24 @@ import { requireManagementAuth } from "@/lib/api/requireManagementAuth";
 import { createErrorResponse, createErrorResponseFromUnknown } from "@/lib/api/errorResponse";
 import { extractApiKey } from "@/sse/services/auth";
 import { runOrchestration, listRuns } from "@/lib/orchestration/service";
+import { runAutonomousOrchestration } from "@/lib/orchestration/autonomousRun";
 import { createHttpModelCaller } from "@/lib/orchestration/modelCaller";
 
 const runRequestSchema = z.object({
   task: z.string().min(1).max(20_000),
   repositorySummary: z.string().max(20_000).optional(),
+  /**
+   * Verification gate(s) run after each subtask. Fixed allowlist keys only —
+   * never raw command strings, so this can never become shell injection.
+   */
+  verifyCommands: z.array(z.enum(["typecheck", "lint", "test:file", "build"])).optional(),
+  /** Set false to keep partial edits on failure (default: roll back). */
+  rollbackOnFailure: z.boolean().optional(),
+  /**
+   * Plan-only mode: classify + plan and persist, WITHOUT editing the
+   * repository. Explicit opt-in so the default is the real autonomous path.
+   */
+  dryRun: z.boolean().optional(),
 });
 
 function resolveSelfBaseUrl(request: Request): string {
@@ -78,12 +91,36 @@ export async function POST(request: Request) {
   });
 
   try {
-    const result = await runOrchestration({
+    // dryRun keeps the old plan-only behaviour available for inspection; the
+    // DEFAULT is the real autonomous path that edits the repository.
+    if (parsed.data.dryRun) {
+      const planOnly = await runOrchestration({
+        task: parsed.data.task,
+        repositorySummary: parsed.data.repositorySummary,
+        callModel,
+        // No runTests: the executor fails closed, so a dry run reports
+        // "unverified" rather than a false success.
+      });
+      return Response.json({ mode: "dry-run", run: planOnly });
+    }
+
+    const result = await runAutonomousOrchestration({
       task: parsed.data.task,
       repositorySummary: parsed.data.repositorySummary,
       callModel,
+      verifyCommands: parsed.data.verifyCommands,
+      rollbackOnFailure: parsed.data.rollbackOnFailure,
     });
-    return Response.json(result);
+
+    return Response.json({
+      mode: "autonomous",
+      run: result.run,
+      appliedChanges: result.appliedChanges,
+      diffStat: result.diffStat,
+      commandResults: result.commandResults,
+      finalReview: result.finalReview,
+      rolledBack: result.rolledBack,
+    });
   } catch (error) {
     return createErrorResponseFromUnknown(error, "Orchestration run failed");
   }
