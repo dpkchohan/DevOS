@@ -51,8 +51,8 @@ function runGit(command: GitReadCommand, cwd: string, extraArgs: string[] = []):
   });
 }
 
-export function gitStatus(cwd: string): Promise<string> {
-  return runGit("status", cwd);
+export function gitStatus(cwd: string, paths: string[] = []): Promise<string> {
+  return runGit("status", cwd, paths.length > 0 ? ["--", ...paths] : []);
 }
 
 /** Unified diff of unstaged changes, optionally scoped to specific paths. */

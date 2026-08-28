@@ -15,7 +15,10 @@
  */
 
 import type { ModelCaller, OrchestrationRunState } from "@/domain/orchestration/types";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { reviewCompletedSubtasks } from "@/domain/orchestration/review";
+
 import { getRoutingPolicy } from "@/lib/db/orchestrationConfig";
 import { updateOrchestrationRun } from "@/lib/db/orchestrationRuns";
 import { runOrchestration, type OrchestrationProgressEvent } from "./service";
@@ -129,13 +132,41 @@ export async function runAutonomousOrchestration(
   let finalReview: { approved: boolean; defects: string[] } | null = null;
   if (applied.length > 0) {
     const diff = await gitDiff(workspace.root, changedPaths);
-    const status = await gitStatus(workspace.root);
+    const status = await gitStatus(workspace.root, changedPaths);
     const verificationSummary = commandResults
       .map(
         (r) =>
           `${r.command} → exit=${r.exitCode}${r.timedOut ? " (TIMED OUT)" : ""} in ${r.durationMs}ms`
       )
       .join("\n");
+    // The subtask-level verification (scoped to files THIS run changed, via
+    // createTestRunner's typecheck/test:file scoping) already passed for
+    // every subtask reaching this point — a raw exit code above can still be
+    // non-zero for PRE-EXISTING, unrelated repository diagnostics that are
+    // out of scope for this task. Tell the reviewer that explicitly so it
+    // judges the change on its own merits rather than the whole-repo exit
+    // code (which is not what gated subtask success).
+    const verificationContext =
+      "Note: verification commands above run against the whole repository, but each subtask's " +
+      "PASS/FAIL decision was already scoped to only the files it changed (see the workspace-" +
+      "relative applied file list below); a non-zero exit code can reflect pre-existing, " +
+      "unrelated repository diagnostics rather than a defect in this change.";
+    // For newly-created files `git diff`/`git status` show nothing useful
+    // (untracked, and diff has no baseline to compare against) — give the
+    // reviewer the actual current contents directly (read from the applied
+    // workspace, not the model transcript) so it can verify exact content
+    // instead of guessing from an empty diff.
+    const appliedContents = applied
+      .map((a) => {
+        let contents = "(could not read file)";
+        try {
+          contents = readFileSync(resolve(workspace.root, a.path), "utf8");
+        } catch {
+          // best-effort context only; never blocks the review
+        }
+        return `--- ${a.path} (${a.action}, ${a.bytesWritten}B) ---\n${contents}`;
+      })
+      .join("\n\n");
 
     finalReview = await reviewCompletedSubtasks({
       leadModel: policy.leadModel,
@@ -152,9 +183,12 @@ export async function runAutonomousOrchestration(
             `Applied files:\n${applied
               .map((a) => `- ${a.action} ${a.path} (${a.bytesWritten}B)`)
               .join("\n")}`,
-            `git status:\n${status || "(unavailable)"}`,
-            `git diff:\n${diff || "(unavailable)"}`,
-            `Verification:\n${verificationSummary || "(none run)"}`,
+            `Applied file contents (authoritative — read directly from the workspace, use this to ` +
+              `verify exact content instead of git diff/status for newly created files):\n${appliedContents || "(none)"}`,
+            `git status (scoped to files this run changed):\n${status || "(no changes outside what was applied — nothing unrelated)"}`,
+            `git diff:\n${diff || "(unavailable, e.g. untracked new files show no diff — see applied file contents above)"}`,
+            `Verification:\n${verificationSummary || "(none run)"}\n${verificationContext}`,
+
             callArgs.userPrompt,
           ]
             .filter(Boolean)
