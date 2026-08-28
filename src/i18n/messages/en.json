@@ -1005,7 +1005,9 @@
     "translator": "Translator",
     "playground": "Playground",
     "searchTools": "Search Tools",
+    "orchestration": "Orchestration",
     "agents": "Agents",
+
     "cloudAgents": "Cloud Agents",
     "memory": "Memory",
     "skills": "Skills",
