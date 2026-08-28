@@ -106,7 +106,15 @@ export async function runSubtask(args: RunSubtaskArgs): Promise<RunSubtaskResult
 
       const testResult = runTests
         ? await runTests(subtask, result.text)
-        : { passed: true, summary: "" };
+        : {
+            // No verification available means UNVERIFIED, not OK. Silently
+            // passing here is what let "model returned text" masquerade as
+            // "work completed and validated".
+            passed: false,
+            summary:
+              "No TestRunner was supplied, so this subtask's output could not be verified. " +
+              "Refusing to report success for unverified work.",
+          };
       attempt.finishedAt = new Date().toISOString();
 
       if (testResult.passed) {

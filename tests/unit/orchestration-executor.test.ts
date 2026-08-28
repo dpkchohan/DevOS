@@ -117,4 +117,22 @@ describe("runSubtask", () => {
     });
     assert.ok(calls >= 1);
   });
+
+  it("does NOT pass when no TestRunner is supplied (unverified != success)", async () => {
+    // Regression guard: an omitted TestRunner used to default to
+    // { passed: true }, which let unverified model text count as completed
+    // work. Unverified must fail closed.
+    const callModel: ModelCaller = async () => ({ text: "looks plausible" });
+
+    const { state } = await runSubtask({
+      subtask: makeSubtask(),
+      policy: { ...DEFAULT_ROUTING_POLICY, maxAttemptsPerSubtask: 1 },
+      callModel,
+      // runTests deliberately omitted
+    });
+
+    assert.notEqual(state.status, "passed");
+    assert.equal(state.attempts[0].outcome, "fail");
+    assert.match(state.attempts[0].errorSummary ?? "", /could not be verified/i);
+  });
 });
