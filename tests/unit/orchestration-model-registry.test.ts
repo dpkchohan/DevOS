@@ -15,9 +15,9 @@ import {
 describe("model capability registry", () => {
   it("has default entries for the five orchestration-brief models", () => {
     for (const id of [
-      "bedrock/us.anthropic.claude-opus-4-7",
-      "bedrock/us.anthropic.claude-sonnet-4-6",
-      "bedrock/us.anthropic.claude-haiku-4-5-20251001-v1:0",
+      "bedrock/global.anthropic.claude-opus-5",
+      "bedrock/global.anthropic.claude-sonnet-5",
+      "bedrock/global.anthropic.claude-haiku-4-5-20251001-v1:0",
       "gpt-5.6-luna",
       "auto/minimax",
     ]) {
@@ -26,7 +26,7 @@ describe("model capability registry", () => {
   });
 
   it("lists Opus 5 under lead/planner/reviewer roles", () => {
-    const opus = getModelCapability("bedrock/us.anthropic.claude-opus-4-7");
+    const opus = getModelCapability("bedrock/global.anthropic.claude-opus-5");
     assert.ok(opus);
     assert.ok(opus?.roles.includes("lead"));
     assert.ok(opus?.roles.includes("planner"));
@@ -35,7 +35,7 @@ describe("model capability registry", () => {
 
   it("lists models by role", () => {
     const leads = listModelsForRole("lead");
-    assert.ok(leads.some((m) => m.id === "bedrock/us.anthropic.claude-opus-4-7"));
+    assert.ok(leads.some((m) => m.id === "bedrock/global.anthropic.claude-opus-5"));
     const workers = listModelsForRole("worker");
     assert.ok(workers.some((m) => m.id === "auto/minimax"));
   });
@@ -64,6 +64,6 @@ describe("model capability registry", () => {
     });
     assert.ok(getModelCapability("test-custom-model"));
     assert.ok(listModelCapabilities().some((m) => m.id === "test-custom-model"));
-    assert.ok(getModelCapability("bedrock/us.anthropic.claude-opus-4-7"));
+    assert.ok(getModelCapability("bedrock/global.anthropic.claude-opus-5"));
   });
 });

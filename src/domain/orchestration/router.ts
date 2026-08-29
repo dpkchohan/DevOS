@@ -16,11 +16,18 @@
 import type { RoutingPolicy, SubtaskAttempt, SubtaskSpec, TaskComplexity } from "./types";
 
 export const DEFAULT_ROUTING_POLICY: RoutingPolicy = {
-  fastWorkers: ["auto/minimax", "gpt-5.6-luna"],
-  strongWorkers: ["bedrock/us.anthropic.claude-sonnet-4-6", "gpt-5.6-luna"],
-  leadModel: "bedrock/us.anthropic.claude-opus-4-7",
-  fallbackModel: "bedrock/us.anthropic.claude-haiku-4-5-20251001-v1:0",
+  // Primary coding worker first, then the retained fallbacks (Haiku fast
+  // worker, MiniMax, and GPT-5.6 Luna) so cheap/simple work still avoids Opus.
+  fastWorkers: [
+    "bedrock/global.anthropic.claude-haiku-4-5-20251001-v1:0",
+    "auto/minimax",
+    "gpt-5.6-luna",
+  ],
+  strongWorkers: ["bedrock/global.anthropic.claude-sonnet-5", "auto/minimax", "gpt-5.6-luna"],
+  leadModel: "bedrock/global.anthropic.claude-opus-5",
+  fallbackModel: "bedrock/global.anthropic.claude-haiku-4-5-20251001-v1:0",
   maxAttemptsPerSubtask: 3,
+
   escalationLadder: [
     { attempt: 1, action: "same" },
     { attempt: 2, action: "same" },

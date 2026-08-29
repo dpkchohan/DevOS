@@ -28,7 +28,7 @@ import type { ModelCapabilityMetadata, ModelRole, RatingLevel } from "./types";
  */
 const DEFAULT_MODEL_CAPABILITIES: ModelCapabilityMetadata[] = [
   {
-    id: "bedrock/us.anthropic.claude-opus-4-7",
+    id: "bedrock/global.anthropic.claude-opus-5",
     displayName: "Claude Opus 5",
     provider: "bedrock",
     family: "claude-opus",
@@ -43,13 +43,12 @@ const DEFAULT_MODEL_CAPABILITIES: ModelCapabilityMetadata[] = [
     roles: ["lead", "planner", "reviewer"],
     notes:
       "Lead architect/planner/reviewer. Live-verified callable id on this deployment's OmniRoute " +
-      "catalog (bedrock inference-profile us.anthropic.claude-opus-4-7). The bare alias " +
-      '"claude-opus-5" is ambiguous against /v1/chat/completions and the on-demand ' +
-      '"anthropic.claude-opus-4-7" id fails with ValidationException — only the ' +
-      '"bedrock/us.anthropic.*" inference-profile form is invokable.',
+      "catalog (bedrock global inference-profile global.anthropic.claude-opus-5). The bare alias " +
+      '"global.anthropic.claude-opus-5" is NOT routable — it returns 400 "Unable to determine ' +
+      'provider"; the "bedrock/" prefix is required.',
   },
   {
-    id: "bedrock/us.anthropic.claude-sonnet-4-6",
+    id: "bedrock/global.anthropic.claude-sonnet-5",
     displayName: "Claude Sonnet 5",
     provider: "bedrock",
     family: "claude-sonnet",
@@ -63,11 +62,12 @@ const DEFAULT_MODEL_CAPABILITIES: ModelCapabilityMetadata[] = [
     reliability: "high",
     roles: ["worker", "reviewer"],
     notes:
-      "Strong worker for COMPLEX subtasks. Live-verified callable id (bedrock inference-profile " +
-      "us.anthropic.claude-sonnet-4-6). Same ambiguous-alias / on-demand-throughput caveats as Opus.",
+      "PRIMARY coding worker. Live-verified callable id (bedrock global inference-profile " +
+      'global.anthropic.claude-sonnet-5). Same bare-alias caveat as Opus: the "bedrock/" prefix ' +
+      "is required.",
   },
   {
-    id: "bedrock/us.anthropic.claude-haiku-4-5-20251001-v1:0",
+    id: "bedrock/global.anthropic.claude-haiku-4-5-20251001-v1:0",
     displayName: "Claude Haiku 4.5",
     provider: "bedrock",
     family: "claude-haiku",
@@ -81,9 +81,10 @@ const DEFAULT_MODEL_CAPABILITIES: ModelCapabilityMetadata[] = [
     reliability: "high",
     roles: ["worker", "fallback"],
     notes:
-      "Fast/simple fallback for TRIVIAL/SIMPLE work. Live-verified callable id: " +
-      "bedrock/us.anthropic.claude-haiku-4-5-20251001-v1:0. Do NOT assume Haiku 4.6 exists on Bedrock.",
+      "Fast worker for TRIVIAL/SIMPLE work. Live-verified callable id: " +
+      "bedrock/global.anthropic.claude-haiku-4-5-20251001-v1:0. Do NOT assume Haiku 4.6 exists.",
   },
+
   {
     id: "gpt-5.6-luna",
     displayName: "GPT-5.6 Luna",

@@ -31,8 +31,14 @@ function makeSubtask(overrides: Partial<SubtaskSpec> = {}): SubtaskSpec {
 
 describe("selectInitialModel", () => {
   it("uses the fast worker for trivial/simple", () => {
-    assert.equal(selectInitialModel("trivial", DEFAULT_ROUTING_POLICY), "auto/minimax");
-    assert.equal(selectInitialModel("simple", DEFAULT_ROUTING_POLICY), "auto/minimax");
+    assert.equal(
+      selectInitialModel("trivial", DEFAULT_ROUTING_POLICY),
+      "bedrock/global.anthropic.claude-haiku-4-5-20251001-v1:0"
+    );
+    assert.equal(
+      selectInitialModel("simple", DEFAULT_ROUTING_POLICY),
+      "bedrock/global.anthropic.claude-haiku-4-5-20251001-v1:0"
+    );
   });
 
   it("uses the strong worker for complex/critical, never the lead model directly", () => {
@@ -73,7 +79,8 @@ describe("selectEscalatedModel", () => {
       { attempt: 2, model: "auto/minimax", startedAt: "t", outcome: "fail" },
       {
         attempt: 3,
-        model: "bedrock/us.anthropic.claude-sonnet-4-6",
+        model: "bedrock/global.anthropic.claude-sonnet-5",
+
         startedAt: "t",
         outcome: "fail",
       },

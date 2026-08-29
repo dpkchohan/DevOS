@@ -98,13 +98,13 @@ breaker/fallback rule still applies to internal calls.
 heuristics (`reasoning`/`coding`/`latency`/`cost`/`reliability`: very-low →
 very-high) for the models named in the orchestration brief:
 
-| Model              | Role(s)                 | Notes                                                  |
-| ------------------ | ----------------------- | ------------------------------------------------------ |
-| `claude-opus-5`    | lead, planner, reviewer | Bedrock: `us.anthropic.claude-opus-5`                  |
-| `claude-sonnet-5`  | worker, reviewer        | Bedrock: `us.anthropic.claude-sonnet-5`                |
-| `claude-haiku-4-5` | worker, fallback        | Bedrock: `us.anthropic.claude-haiku-4-5-20251001-v1:0` |
-| `gpt-5.6-luna`     | worker                  | Requires correct inference profile                     |
-| `minimax-m2.5`     | worker                  | Default fast implementation model                      |
+| Model              | Role(s)                    | Notes                                                              |
+| ------------------ | -------------------------- | ------------------------------------------------------------------ |
+| `claude-opus-5`    | lead, planner, reviewer    | Bedrock: `bedrock/global.anthropic.claude-opus-5`                  |
+| `claude-sonnet-5`  | worker (primary), reviewer | Bedrock: `bedrock/global.anthropic.claude-sonnet-5`                |
+| `claude-haiku-4-5` | worker (fast), fallback    | Bedrock: `bedrock/global.anthropic.claude-haiku-4-5-20251001-v1:0` |
+| `gpt-5.6-luna`     | worker (fallback)          | Requires correct inference profile                                 |
+| `auto/minimax`     | worker (fallback)          | MiniMax fallback                                                   |
 
 These ratings are **routing heuristics, not benchmarks**. Add/override via
 `registerModelCapability()` at runtime, or extend the array in

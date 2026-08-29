@@ -32,7 +32,7 @@ describe("reviewCompletedSubtasks", () => {
       text: JSON.stringify({ approved: true, defects: [] }),
     });
     const result = await reviewCompletedSubtasks({
-      leadModel: "bedrock/us.anthropic.claude-opus-4-7",
+      leadModel: "bedrock/global.anthropic.claude-opus-5",
       completedSubtasks: [makeCompleted("a", "impl a")],
       callModel,
     });
@@ -45,7 +45,7 @@ describe("reviewCompletedSubtasks", () => {
       text: JSON.stringify({ approved: false, defects: ["Missing null check in foo()"] }),
     });
     const result = await reviewCompletedSubtasks({
-      leadModel: "bedrock/us.anthropic.claude-opus-4-7",
+      leadModel: "bedrock/global.anthropic.claude-opus-5",
       completedSubtasks: [makeCompleted("a", "impl a")],
       callModel,
     });
@@ -58,7 +58,7 @@ describe("reviewCompletedSubtasks", () => {
       throw new Error("timeout");
     };
     const result = await reviewCompletedSubtasks({
-      leadModel: "bedrock/us.anthropic.claude-opus-4-7",
+      leadModel: "bedrock/global.anthropic.claude-opus-5",
       completedSubtasks: [makeCompleted("a", "impl a")],
       callModel,
     });
@@ -69,7 +69,7 @@ describe("reviewCompletedSubtasks", () => {
   it("degrades to approved with no defects on unparsable output", async () => {
     const callModel: ModelCaller = async () => ({ text: "not json" });
     const result = await reviewCompletedSubtasks({
-      leadModel: "bedrock/us.anthropic.claude-opus-4-7",
+      leadModel: "bedrock/global.anthropic.claude-opus-5",
       completedSubtasks: [makeCompleted("a", "impl a")],
       callModel,
     });
